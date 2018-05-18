@@ -1,5 +1,9 @@
 ## Java
 
+android/bin
+android/gen
+core/bin
+core/gen
 *.class
 *.war
 *.ear

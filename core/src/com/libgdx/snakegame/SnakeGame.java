@@ -8,23 +8,26 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import com.badlogic.gdx.graphics.g2d.GlyphLayout;
+//import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.FitViewport;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.input.GestureDetector;
+import com.badlogic.gdx.math.Vector2;
 
 public class SnakeGame extends ApplicationAdapter {
-
+  private String TAG ="SnakeGame";
 	private ShapeRenderer shapeRenderer;
 	private SpriteBatch batch;
 	private Texture snakeHead;
 	private Texture apple;
 	private Texture snakeBody;
-	private static final float MOVE_TIME = 0.5f; // Ì°³ÔÉßÃ¿ÃëÖÓ×Ô¼ºÒÆ¶¯Ò»¸ö¾àÀë
+	private static final float MOVE_TIME = 0.5f; // è´ªåƒè›‡æ¯ç§’é’Ÿè‡ªå·±ç§»åŠ¨ä¸€ä¸ªè·ç¦»
 	private float timer = MOVE_TIME;
-	private static final int SNAKE_MOVEMENT = 32; // Ì°³ÔÉß±¾Éí´óĞ¡Îª32*32£¬Ã¿´ÎÒÆ¶¯Ò»¸ñ
+	private static final int SNAKE_MOVEMENT = 32; // è´ªåƒè›‡æœ¬èº«å¤§å°ä¸º32*32ï¼Œæ¯æ¬¡ç§»åŠ¨ä¸€æ ¼
 	private int snakeX = 0, snakeY = 0;
 	private boolean appleAvailable = false;
 	private boolean directionSet = false;
@@ -34,32 +37,100 @@ public class SnakeGame extends ApplicationAdapter {
 	private Array<BodyPart> bodyParts = new Array<BodyPart>();
 	private STATE state = STATE.PLAYING;
 	private static final String GAME_OVER_TEXT = "Game Over... Tap space to restart!";
-	private GlyphLayout layout;
+	private Label layout;
 	
 	private BitmapFont bitmapFont;
 	private FitViewport viewport;
 	
-	private static final float WORLD_WIDTH = 640f;
-	private static final float WORLD_HEIGHT = 480f;
-
+	private static final int WORLD_WIDTH = 640;
+	private static final int WORLD_HEIGHT = 480;
+  private int map_w,map_h;
+	
+	
+	
+	public class MyGestureListener implements GestureDetector. GestureListener{
+		@Override
+		public boolean touchDown(float x, float y, int pointer, int button) {
+		return false;
+		}
+		@Override
+		public boolean tap(float x, float y, int count, int button) {
+		return false;
+		}
+		@Override
+		public boolean longPress(float x, float y) {
+		return false;
+		}
+		@Override
+		public boolean fling(float velocityX, float velocityY, int button) {
+		if(velocityX>0 && velocityX >velocityY)
+			updateDirection(RIGHT);
+		if(velocityX<0 && velocityX<velocityY)
+			updateDirection(LEFT);
+		if(velocityY<0 && velocityY<velocityX)
+			updateDirection(UP);
+		if(velocityY>0 && velocityY>velocityX)
+			updateDirection(DOWN);
+			return false;
+		}
+		@Override
+		public boolean pan(float x, float y, float deltaX, float deltaY) {
+		return false;
+		}
+		@Override
+		public boolean panStop(float x, float y, int pointer, int button) {
+		return false;
+		}
+		@Override
+		public boolean zoom (float originalDistance, float currentDistance){
+		return false;
+		}
+		@Override
+		public boolean pinch (Vector2 initialFirstPointer, Vector2 initialSecondPointer, Vector2 firstPointer, Vector2 secondPointer){
+		return false;
+		}
+	}
+	
 	@Override
 	public void create() {
+		Gdx.app.setLogLevel(Gdx.app.LOG_DEBUG);
+		map_w = WORLD_WIDTH/SNAKE_MOVEMENT;
+		map_h = WORLD_HEIGHT/SNAKE_MOVEMENT;
 		batch = new SpriteBatch();
+		Gdx.app.error(TAG,"1111");
 		snakeHead = new Texture(Gdx.files.internal("snakehead.png"));
 		apple = new Texture(Gdx.files.internal("apple.png"));
-		snakeBody = new Texture(Gdx.files.internal("snakeBody.png"));
-
+		snakeBody = new Texture(Gdx.files.internal("snakebody.png"));
+	Gdx.app.error(TAG,"2222");
 		shapeRenderer = new ShapeRenderer();
 		bitmapFont = new BitmapFont();
+		Label.LabelStyle style = new Label.LabelStyle();
+		style.font = bitmapFont;
+		style.fontColor=Color.BLUE;
 		
-		layout = new GlyphLayout();
 		
+	Gdx.app.error(TAG,"3333");
+		layout = new Label("aa",style);
+	;
+	Gdx.input.setInputProcessor(new GestureDetector(new MyGestureListener()));
+
+	
+	
+	Gdx.app.error(TAG,"4556");
 		viewport = new FitViewport(WORLD_WIDTH, WORLD_HEIGHT);
 		viewport.apply(true);
+	Gdx.app.error(TAG,"6666666");
+	
 	}
 
 	private void checkForRestart() {
 		if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) doRestart();
+		if(Gdx.input.isKeyJustPressed(Input.Keys.MENU)) doRestart();
+		if(Gdx.input.isTouched())
+		{
+			
+			doRestart();
+		}
 	}
 	
 	private void doRestart() {
@@ -108,6 +179,7 @@ public class SnakeGame extends ApplicationAdapter {
 			checkForOutOfBounds();
 			updateBodyPartsPosition();
 			checkSnakeBodyCollision();
+			checkWallCollision();
 			directionSet = false;
 		}
 	}
@@ -128,13 +200,13 @@ public class SnakeGame extends ApplicationAdapter {
 	}
 
 	/**
-	 * ¼ì²âÆ»¹ûÊÇ·ñÓëÌ°³ÔÉß·¢ÉúÅö×²£¬Î»ÖÃÖØºÏ£¬¼´·¢ÉúÅö×² ÒòÎªÃ¿´ÎÒÆ¶¯¶¼ÊÇ32¸öÏñËØ
+	 * æ£€æµ‹è‹¹æœæ˜¯å¦ä¸è´ªåƒè›‡å‘ç”Ÿç¢°æ’ï¼Œä½ç½®é‡åˆï¼Œå³å‘ç”Ÿç¢°æ’ å› ä¸ºæ¯æ¬¡ç§»åŠ¨éƒ½æ˜¯32ä¸ªåƒç´ 
 	 */
 	private void checkAppleCollision() {
 
 		if (appleAvailable && appleX == snakeX && appleY == snakeY) {
-			// µ±Ì°³ÔÉß³ÔÁËÆ»¹ûÖ®ºó£¬Ìí¼ÓÌ°³ÔÉßµÄÉíÌå£¬ËäÈ»ÊÇinsertµ½BodyÊı×éµÄµÚÒ»¸ö
-			// µ«ÊÇÍ¨¹ıupdateBodyPartsPosition·½·¨ºó³ÉÎª×îºóÒ»¸ö
+			// å½“è´ªåƒè›‡åƒäº†è‹¹æœä¹‹åï¼Œæ·»åŠ è´ªåƒè›‡çš„èº«ä½“ï¼Œè™½ç„¶æ˜¯insertåˆ°Bodyæ•°ç»„çš„ç¬¬ä¸€ä¸ª
+			// ä½†æ˜¯é€šè¿‡updateBodyPartsPositionæ–¹æ³•åæˆä¸ºæœ€åä¸€ä¸ª
 			BodyPart bodyPart = new BodyPart(snakeBody);
 			bodyPart.updateBodyPosition(snakeX, snakeY);
 			bodyParts.insert(0, bodyPart);
@@ -153,20 +225,21 @@ public class SnakeGame extends ApplicationAdapter {
 			batch.draw(apple, appleX, appleY);
 		}
 		if (state == STATE.GAME_OVER) {
-			layout.setText(bitmapFont, GAME_OVER_TEXT);
-			bitmapFont.draw(batch, GAME_OVER_TEXT, (viewport.getWorldWidth() - layout.width) / 2, 
-					(viewport.getWorldHeight() - layout.height) / 2);
+			layout.setText( GAME_OVER_TEXT);
+			layout.setSize(layout.getPrefWidth(),layout.getPrefHeight());
+			bitmapFont.draw(batch, GAME_OVER_TEXT, (viewport.getWorldWidth() - layout.getWidth()) / 2, 
+					(viewport.getWorldHeight() - layout.getHeight()) / 2);
 		}
 		batch.end();
 	}
 
 	private void drawGrid() {
-		// ShaperRenderÉèÖÃÓ³Éä¾ØÕó
+		// ShaperRenderè®¾ç½®æ˜ å°„çŸ©é˜µ
 		shapeRenderer.setProjectionMatrix(viewport.getCamera().combined);
 		shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
 		for (int x = 0; x < viewport.getWorldWidth(); x += GRID_CELL) {
 			for (int y = 0; y < viewport.getWorldHeight(); y += GRID_CELL) {
-				// »­³öÒ»¸öÕı·½ĞÎ
+				// ç”»å‡ºä¸€ä¸ªæ­£æ–¹å½¢
 				shapeRenderer.rect(x, y, GRID_CELL, GRID_CELL);
 			}
 		}
@@ -179,7 +252,7 @@ public class SnakeGame extends ApplicationAdapter {
 	}
 
 	/**
-	 * ÅĞ¶ÏÌ°³ÔÉßµÄÍ¶ÊÇ·ñºÍÉíÌå½Ó´¥£¬½Ó´¥ÔòÓÎÏ·½áÊø
+	 * åˆ¤æ–­è´ªåƒè›‡çš„æŠ•æ˜¯å¦å’Œèº«ä½“æ¥è§¦ï¼Œæ¥è§¦åˆ™æ¸¸æˆç»“æŸ
 	 */
 	private void checkSnakeBodyCollision() {
 		for (BodyPart bodyPart : bodyParts) {
@@ -187,23 +260,32 @@ public class SnakeGame extends ApplicationAdapter {
 				state = STATE.GAME_OVER;
 		}
 	}
+	
+	//åˆ¤æ–­è´ªåƒè›‡æ˜¯å¦æ’å¢™
+	private void checkWallCollision()
+	{
+		if(snakeX<0 || snakeX>=map_w*SNAKE_MOVEMENT || snakeY<0 || snakeY>=map_h*SNAKE_MOVEMENT)
+		{
+			state = STATE.GAME_OVER;
+		}
+	}
 
 	private void checkAndPlaceApple() {
-		// ÆäÊµÆ»¹ûÖ»ÓĞÒ»¸ö£¬Í¨¹ıappleAvailable¿ØÖÆÆ»¹ûµÄÎ»ÖÃ£¬²¢¸Ä±äÎ»ÖÃ
+		// å…¶å®è‹¹æœåªæœ‰ä¸€ä¸ªï¼Œé€šè¿‡appleAvailableæ§åˆ¶è‹¹æœçš„ä½ç½®ï¼Œå¹¶æ”¹å˜ä½ç½®
 		if (!appleAvailable) {
 			do {
 				appleX = MathUtils.random((int)viewport.getWorldWidth() / SNAKE_MOVEMENT - 1) * SNAKE_MOVEMENT;
 				appleY = MathUtils.random((int)viewport.getWorldHeight() / SNAKE_MOVEMENT - 1) * SNAKE_MOVEMENT;
 				appleAvailable = true;
-			} while (appleX == snakeX && appleY == snakeY); // Èç¹ûÆ»¹ûµÄÎ»ÖÃºÍÌ°³ÔÉßµÄÎ»ÖÃÖØ¸´£¬ÄÇÃ´ĞèÒªÖØĞÂÉú³ÉÒ»¸öÆ»¹û
+			} while (appleX == snakeX && appleY == snakeY); // å¦‚æœè‹¹æœçš„ä½ç½®å’Œè´ªåƒè›‡çš„ä½ç½®é‡å¤ï¼Œé‚£ä¹ˆéœ€è¦é‡æ–°ç”Ÿæˆä¸€ä¸ªè‹¹æœ
 		}
 	}
 
 	/**
-	 * ¼ì²éÌ°³ÔÉßËùÔÚÎ»ÖÃµÄ±ß½ç
+	 * æ£€æŸ¥è´ªåƒè›‡æ‰€åœ¨ä½ç½®çš„è¾¹ç•Œ
 	 */
 	private void checkForOutOfBounds() {
-		if (snakeX >= Gdx.graphics.getWidth()) { // Èç¹ûÌ°³ÔÉßÔÚ×îÓÒ±ß£¬ÄÇÃ´ÒÆ¶¯µ½×î×ó±ß
+		if (snakeX >= Gdx.graphics.getWidth()) { // å¦‚æœè´ªåƒè›‡åœ¨æœ€å³è¾¹ï¼Œé‚£ä¹ˆç§»åŠ¨åˆ°æœ€å·¦è¾¹
 			snakeX = 0;
 		}
 		if (snakeX < 0) {
@@ -226,7 +308,7 @@ public class SnakeGame extends ApplicationAdapter {
 	private int snakeXBeforeUpdate = 0, snakeYBeforeUpdate = 0;
 
 	private void moveSnake() {
-		// ÉíÌåÊ¼ÖÕÒÆ¶¯µ½Ì°³ÔÉßµ±Ç°µÄÎ»ÖÃ
+		// èº«ä½“å§‹ç»ˆç§»åŠ¨åˆ°è´ªåƒè›‡å½“å‰çš„ä½ç½®
 		snakeXBeforeUpdate = snakeX;
 		snakeYBeforeUpdate = snakeY;
 
@@ -252,7 +334,7 @@ public class SnakeGame extends ApplicationAdapter {
 
 	private void updateBodyPartsPosition() {
 		if (bodyParts.size > 0) {
-			// Ã¿´ÎÖ»ĞèÒÆ¶¯Ò»¿éÉíÌå
+			// æ¯æ¬¡åªéœ€ç§»åŠ¨ä¸€å—èº«ä½“
 			BodyPart bodyPart = bodyParts.removeIndex(0);
 			bodyPart.updateBodyPosition(snakeXBeforeUpdate, snakeYBeforeUpdate);
 			bodyParts.add(bodyPart);
@@ -260,7 +342,7 @@ public class SnakeGame extends ApplicationAdapter {
 	}
 
 	private void updateIfNotOppositeDirection(int newSnakeDirection, int oppositeDirection) {
-		// µ±Ì°³ÔÉßÃ»ÓĞÉíÌå¿ÉÒÔ»ØÍ·£¬ÆäÓàÊ±ºòÖ»ÓĞ·½Ïò²»Í¬²ÅÄÜ×ªÏò
+		// å½“è´ªåƒè›‡æ²¡æœ‰èº«ä½“å¯ä»¥å›å¤´ï¼Œå…¶ä½™æ—¶å€™åªæœ‰æ–¹å‘ä¸åŒæ‰èƒ½è½¬å‘
 		if (snakeDirection != oppositeDirection || bodyParts.size == 0)
 			snakeDirection = newSnakeDirection;
 	}
@@ -301,6 +383,36 @@ public class SnakeGame extends ApplicationAdapter {
 		if (uPressed) updateDirection(UP);
 		if (dPressed) updateDirection(DOWN);
 
+		int x=0,y=0;
+		int keywidth=Gdx.graphics.getWidth()/3;
+		int keyheight = Gdx.graphics.getHeight()/3;
+		/*
+		if(Gdx.input.isTouched(0))
+		{
+			x = Gdx.input.getX(0);
+			y = Gdx.input.getY(0);
+			//ä¸Š
+			if(x>keywidth && x<keywidth*2 && y>=0 && y<keyheight)
+			{
+				updateDirection(UP);
+			}
+			//ä¸‹
+			if(x>keywidth && x<keywidth*2 && y>keyheight*2 && y<keyheight*3)
+			{
+				updateDirection(DOWN);
+			}
+		//å·¦
+		if(x>=0 && x<keywidth && y>keyheight && y<keyheight*2)
+		{
+updateDirection(LEFT);
+		}
+			//å³
+			if(x>keywidth*2 && x<keywidth*3 && y>keyheight && y<keyheight*2){
+				updateDirection(RIGHT);
+			}
+		}
+		*/
+		
 	}
 
 	private enum STATE {
@@ -321,7 +433,7 @@ public class SnakeGame extends ApplicationAdapter {
 		}
 
 		public void draw(Batch batch) {
-			// µ±Ì°³ÔÉßÒÆ¶¯¿ªÍ·Ö®ºó£¬²Å»æÖÆÉíÌå
+			// å½“è´ªåƒè›‡ç§»åŠ¨å¼€å¤´ä¹‹åï¼Œæ‰ç»˜åˆ¶èº«ä½“
 			if (!(x == snakeX && y == snakeY)) {
 				batch.draw(texture, x, y);
 			}
